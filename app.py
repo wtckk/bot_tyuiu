@@ -2,6 +2,9 @@ async def on_startup(dp):
 
     from loader import db
 
+    import middlewares
+    middlewares.setup(dp)
+
     from utils.db_api.db_gino import on_startup
     print('Подключение к PostgreSQL')
     await on_startup(dp)

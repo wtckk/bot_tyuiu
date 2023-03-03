@@ -3,8 +3,10 @@ from aiogram import types
 from keyboards.default.keyboard_menu import kb_menu
 from loader import dp
 from utils.db_api import quick_commands as commands
+from utils.misc import rate_limit
 
 
+@rate_limit(limit=3)
 @dp.message_handler(text='/start')
 async def command_start(message: types.Message):
     try:
