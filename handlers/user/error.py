@@ -8,4 +8,4 @@ from utils.misc import rate_limit
 @rate_limit(limit=3)
 @dp.message_handler()
 async def command_error(message: types.Message):
-    await message.answer(f'Команды не существует.')
+    await message.answer(f'Команды не существует', reply_markup=kb_menu)

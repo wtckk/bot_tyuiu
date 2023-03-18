@@ -45,7 +45,7 @@ async def find_teacher_process_name(message: types.Message, state: FSMContext):
     if teacher:
         teacher_info = md.text(
             md.text(f"{teacher['name']}"),
-            md.text(f"Отдел: Кафедра{teacher['department']}"),
+            md.text(f"Отдел: Кафедра {teacher['department']}"),
             md.text(f"Должность: {teacher['position']}"),
             md.text(f"Почта: {teacher['mail']}"),
             sep='\n'

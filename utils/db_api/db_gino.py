@@ -38,5 +38,4 @@ class TimedBaseModel(BaseModel):
 
 
 async def on_startup(dispatcher: Dispatcher):
-    print("Connect to DB")
     await db.set_bind(config.POSTGRES_URI)
