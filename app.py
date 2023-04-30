@@ -11,9 +11,6 @@ async def on_startup(dp):
 
     await on_startup(dp)
 
-    # print('Удаление базы данных')
-    # await db.gino.drop_all()
-
     print("[INFO] Создание таблиц")
     await db.gino.create_all()
 

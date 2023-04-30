@@ -24,7 +24,6 @@ async def command_audit(message: types.Message):
     await message.answer(f'Выберите нужный вам институт', reply_markup=ikb_navigation)
 
 
-
 class BuildingNumber(StatesGroup):
     building = State()
     room = State()
@@ -50,7 +49,7 @@ async def proces_room_number(message: types.Message, state: FSMContext):
     async with asyncpg.create_pool(POSTGRES_URI) as pool:
         async with pool.acquire() as conn:
             res = await conn.fetchrow("SELECT EXISTS(SELECT 1 FROM rooms WHERE building_number=$1 AND room_number=$2)",
-                                (await state.get_data())['building_number'], room_number)
+                                      (await state.get_data())['building_number'], room_number)
 
     if res[0]:
         floor = room_number // 100
@@ -61,6 +60,7 @@ async def proces_room_number(message: types.Message, state: FSMContext):
         await bot.send_message(chat_id=message.from_user.id, text="Кабинет не найден", reply_markup=kb_menu)
 
     await state.finish()
+
 
 @dp.message_handler(text='🌏 Расположение институтов')
 async def command_legend(message: types.Message):

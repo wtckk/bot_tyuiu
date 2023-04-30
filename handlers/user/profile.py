@@ -1,7 +1,7 @@
 import asyncpg
 
 from keyboards.default import kb_profile
-from loader import dp
+from loader import dp, bot
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -23,7 +23,11 @@ async def info_user(message: types.Message):
             result = await conn.fetchrow('select login, password FROM user_auth WHERE user_id=$1', user_id)
     login = result['login'] if result else '⬜️'
     password = result['password'] if result else '⬜️'
-    await message.answer(f"Ваш user_id: {user_id}\nВаш логин: {login}\nВаш пароль: {password}")
+    path = 'G:/Рабочий стол/bot_tyuiu/files/profile.png'
+    text = f"Ваш user id: {user_id}\nВаш логин: {login}\nВаш пароль: {password}"
+    with open(path, "rb") as photo:
+        await bot.send_photo(chat_id=message.from_user.id, photo=photo, caption=text)
+
 class LoginState(StatesGroup):
     waiting_login = State()
     waiting_password = State()
@@ -52,13 +56,15 @@ async def process_password(message: types.Message, state: FSMContext):
             async with asyncpg.create_pool(POSTGRES_URI) as pool:
                 async with pool.acquire() as conn:
                     row = await conn.fetchrow('SELECT id FROM user_auth WHERE user_id=$1', data['user_id'])
-                    if not row:
+            if row is None:
+                async with asyncpg.create_pool(POSTGRES_URI) as pool:
+                    async with pool.acquire() as conn:
                         await conn.execute('INSERT INTO user_auth (user_id, login, password) VALUES ($1, $2, $3)', data['user_id'], data['login'], data['password'])
-                        await message.answer("✅Данные сохранены в боте.")
-                    else:
-                        await message.answer("❌Вы уже ввели свои данные")
+                        await message.answer("✅Данные сохранены в боте")
+            elif row is not None:
+                await message.answer("❌ Вы уже вводили данные")
         else:
-            await message.answer("❌Неверный логин или пароль")
+            await message.answer("❌ Неверный логин или пароль")
     await state.finish()
 
 

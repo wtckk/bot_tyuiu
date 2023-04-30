@@ -7,7 +7,8 @@ kb_menu = ReplyKeyboardMarkup(
         ],
         [
             KeyboardButton('🧭 Навигатор'),
-            KeyboardButton('☎️ Контакты')
+            KeyboardButton('☎️ Контакты'),
+            KeyboardButton("📅 Расписание")
         ],
         [
             KeyboardButton('📖 Справочник')
