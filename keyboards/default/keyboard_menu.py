@@ -11,7 +11,7 @@ kb_menu = ReplyKeyboardMarkup(
             KeyboardButton("📅 Расписание")
         ],
         [
-            KeyboardButton('📖 Справочник')
+            KeyboardButton('📖 Калькулятор ЕГЭ')
         ]
     ],
     resize_keyboard=True, one_time_keyboard=True

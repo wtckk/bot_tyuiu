@@ -13,10 +13,6 @@ async def command_start(message: types.Message):
         await message.answer(f'Привет, {message.from_user.full_name}, я твой личный помощник! \n'
                              f'Обязательно попытаюсь тебе помочь.', reply_markup=kb_menu)
         user = await commands.select_user(message.from_user.id)
-        if user.status == 'active':
-            await message.answer('Вы уже зарегистрированы.', reply_markup=kb_menu)
-        elif user.status == 'banned':
-            await message.answer('Вы заблокированы')
         await message.delete()
     except Exception:
         await commands.add_user(user_id=message.from_user.id,

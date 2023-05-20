@@ -26,12 +26,16 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 @dp.message_handler(text="📅 Расписание")
 async def parse_schedule(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
+    message_id = message.message_id
+    chat_id = message.chat.id
     try:
         async with asyncpg.create_pool(POSTGRES_URI) as pool:
             async with pool.acquire() as conn:
-                result = await conn.fetchrow('select login, password FROM user_auth WHERE user_id=$1', user_id)
+                result = await conn.fetchrow('select login, password, role FROM user_auth WHERE user_id=$1', user_id)
         login = result['login']
         password = result['password']
+        role = result['role']
+        wait_message = await message.answer("⏳ Ожидание...")
     except TypeError:
         await message.answer("Ваши данные не найдены...")
 
@@ -51,23 +55,45 @@ async def parse_schedule(message: types.Message, state: FSMContext):
 
     link = "https://tyuiu.modeus.org"
     try:
-
         driver.get(link)
         await sleep(1)
+        if role == "student":
+            button = driver.find_element(By.XPATH, '//*[@id="bySelection"]/div[3]')
+            button.click()
+            await sleep(1)
+            await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id,
+                                        text='️⌛️Ожидание...')
+            login_input = driver.find_element(By.ID, "userNameInput")
+            login_input.send_keys(fr"std\{login}")
+            password_input = driver.find_element(By.ID, "passwordInput")
+            password_input.send_keys(fr"{password}")
+            await sleep(2)
+            await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id,
+                                        text='️⌛️Ожидание..')
+            submitButton = driver.find_element(By.ID, "submitButton")
+            submitButton.click()
+            await sleep(5)
 
-        button = driver.find_element(By.XPATH, '//*[@id="bySelection"]/div[3]')
-        button.click()
-        await sleep(1)
+            await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id, text='️⏳Ожидание.')
+        elif role == "teacher":
+            button = driver.find_element(By.XPATH, '//*[@id="bySelection"]/div[2]')
+            button.click()
+            await sleep(1)
+            await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id,
+                                        text='️⌛️Ожидание...')
+            login_input = driver.find_element(By.ID, "userNameInput")
+            login_input.send_keys(fr"tgngu\{login}")
+            password_input = driver.find_element(By.ID, "passwordInput")
+            password_input.send_keys(fr"{password}")
+            await sleep(2)
+            await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id,
+                                        text='️⌛️Ожидание..')
+            submitButton = driver.find_element(By.ID, "submitButton")
+            submitButton.click()
+            await sleep(5)
 
-        login_input = driver.find_element(By.ID, "userNameInput")
-        login_input.send_keys(fr"std\{login}")
-        password_input = driver.find_element(By.ID, "passwordInput")
-        password_input.send_keys(fr"{password}")
-        await sleep(2)
-
-        submitButton = driver.find_element(By.ID, "submitButton")
-        submitButton.click()
-        await sleep(5)
+            await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id,
+                                        text='️⏳Ожидание.')
 
         select = Select(driver.find_element(By.CSS_SELECTOR, ".fc-view-select"))
         select.select_by_value("agendaDay")
@@ -78,7 +104,9 @@ async def parse_schedule(message: types.Message, state: FSMContext):
         for event in events:
             text = event.text
             events_text += f"- {text}\n"
-        await message.answer(events_text, parse_mode=ParseMode.HTML, reply_markup=ikb_schedule)
+
+        await wait_message.delete()
+        await message.answer(text=events_text, parse_mode=ParseMode.HTML)
 
     except Exception as ex:
         await message.answer("Что-то пошло не так...")
@@ -88,88 +116,89 @@ async def parse_schedule(message: types.Message, state: FSMContext):
         driver.quit()
 
 
-@dp.callback_query_handler(lambda c: c.data in ['next_day', 'prev_day'])
-async def process_choose_day(callback_query: types.CallbackQuery):
-    chat_id = callback_query.message.chat.id
-    message_id = callback_query.message.message_id
-    try:
-        async with asyncpg.create_pool(POSTGRES_URI) as pool:
-            async with pool.acquire() as conn:
-                result = await conn.fetchrow('select login, password FROM user_auth WHERE user_id=$1', chat_id)
-        login = result['login']
-        password = result['password']
-    except TypeError:
-        await bot.answer_callback_query(callback_query.id, "Ваши данные не найдены...")
-        return
-
-    options = webdriver.ChromeOptions()
-
-    useragent = UserAgent()
-
-    options.add_argument(f"user-agent={useragent.random}")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-
-    s = r"G:\Рабочий стол\bot_tyuiu\utils\parser_modeus"
-
-    driver = webdriver.Chrome(
-        executable_path=s,
-        options=options
-    )
-
-    link = "https://tyuiu.modeus.org"
-    try:
-
-        driver.get(link)
-        await sleep(1)
-
-        button = driver.find_element(By.XPATH, '//*[@id="bySelection"]/div[3]')
-        button.click()
-        await sleep(1)
-
-        login_input = driver.find_element(By.ID, "userNameInput")
-        login_input.send_keys(fr"std\{login}")
-        password_input = driver.find_element(By.ID, "passwordInput")
-        password_input.send_keys(fr"{password}")
-        await sleep(3)
-
-        submitButton = driver.find_element(By.ID, "submitButton")
-        submitButton.click()
-        await sleep(10)
-
-        select = Select(driver.find_element(By.CSS_SELECTOR, ".fc-view-select"))
-        select.select_by_value("agendaDay")
-        await sleep(3)
-
-        if callback_query.data == "next_day":
-            print('next_day')
-            next_day = driver.find_element(By.CSS_SELECTOR,
-                                           '.fc-next-button.fc-button.fc-state-default.fc-corner-right')
-            next_day.click()
-            await sleep(5)
-
-            events = driver.find_elements(By.CSS_SELECTOR, "a.fc-time-grid-event")
-            events_text = "Расписание на следующий день\n"
-            for event in events:
-                text = event.text
-                events_text += f"- {text}\n"
-
-            await bot.send_message(chat_id=chat_id, text=events_text, parse_mode=ParseMode.HTML)
-        elif callback_query.data == "prev_day":
-            print("prev_Day")
-            prev_day = driver.find_element(By.CSS_SELECTOR, '.fc-prev-button')
-            prev_day.click()
-            await sleep(5)
-
-            events = driver.find_elements(By.CSS_SELECTOR, "a.fc-time-grid-event")
-            events_text = "Расписание на предыдущий день\n"
-            for event in events:
-                text = event.text
-                events_text += f"- {text}\n"
-            await bot.send_message(chat_id=chat_id, text=events_text, parse_mode=ParseMode.HTML)
-
-    except Exception as ex:
-        await bot.answer_callback_query(callback_query.id, "Что-то пошло не так...")
-        print(ex)
-    finally:
-        driver.close()
-        driver.quit()
+# @dp.callback_query_handler(lambda c: c.data in ['next_day', 'prev_day'])
+# async def process_choose_day(callback_query: types.CallbackQuery):
+#     chat_id = callback_query.message.chat.id
+#     message_id = callback_query.message.message_id
+#     try:
+#         async with asyncpg.create_pool(POSTGRES_URI) as pool:
+#             async with pool.acquire() as conn:
+#                 result = await conn.fetchrow('select login, password, role FROM user_auth WHERE user_id=$1', chat_id)
+#         login = result['login']
+#         password = result['password']
+#         role = result['role']
+#     except TypeError:
+#         await bot.answer_callback_query(callback_query.id, "Ваши данные не найдены...")
+#         return
+#     print(login, password, role)
+#     options = webdriver.ChromeOptions()
+#
+#     useragent = UserAgent()
+#
+#     options.add_argument(f"user-agent={useragent.random}")
+#     options.add_argument("--disable-blink-features=AutomationControlled")
+#
+#     s = r"G:\Рабочий стол\bot_tyuiu\utils\parser_modeus"
+#
+#     driver = webdriver.Chrome(
+#         executable_path=s,
+#         options=options
+#     )
+#
+#     link = "https://tyuiu.modeus.org"
+#     try:
+#
+#         driver.get(link)
+#         await sleep(1)
+#
+#         button = driver.find_element(By.XPATH, '//*[@id="bySelection"]/div[3]')
+#         button.click()
+#         await sleep(1)
+#
+#         login_input = driver.find_element(By.ID, "userNameInput")
+#         login_input.send_keys(fr"std\{login}")
+#         password_input = driver.find_element(By.ID, "passwordInput")
+#         password_input.send_keys(fr"{password}")
+#         await sleep(3)
+#
+#         submitButton = driver.find_element(By.ID, "submitButton")
+#         submitButton.click()
+#         await sleep(10)
+#
+#         select = Select(driver.find_element(By.CSS_SELECTOR, ".fc-view-select"))
+#         select.select_by_value("agendaDay")
+#         await sleep(3)
+#
+#         if callback_query.data == "next_day":
+#             print('next_day')
+#             next_day = driver.find_element(By.CSS_SELECTOR,
+#                                            '.fc-next-button.fc-button.fc-state-default.fc-corner-right')
+#             next_day.click()
+#             await sleep(5)
+#
+#             events = driver.find_elements(By.CSS_SELECTOR, "a.fc-time-grid-event")
+#             events_text = "Расписание на следующий день\n"
+#             for event in events:
+#                 text = event.text
+#                 events_text += f"- {text}\n"
+#
+#             await bot.send_message(chat_id=chat_id, text=events_text, parse_mode=ParseMode.HTML)
+#         elif callback_query.data == "prev_day":
+#             print("prev_Day")
+#             prev_day = driver.find_element(By.CSS_SELECTOR, '.fc-prev-button')
+#             prev_day.click()
+#             await sleep(5)
+#
+#             events = driver.find_elements(By.CSS_SELECTOR, "a.fc-time-grid-event")
+#             events_text = "Расписание на предыдущий день\n"
+#             for event in events:
+#                 text = event.text
+#                 events_text += f"- {text}\n"
+#             await bot.send_message(chat_id=chat_id, text=events_text, parse_mode=ParseMode.HTML)
+#
+#     except Exception as ex:
+#         await bot.answer_callback_query(callback_query.id, "Что-то пошло не так...")
+#         print(ex)
+#     finally:
+#         driver.close()
+#         driver.quit()

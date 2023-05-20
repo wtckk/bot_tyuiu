@@ -68,17 +68,15 @@ async def process_role_callback(query: types.CallbackQuery, state: FSMContext):
         data['role'] = role
 
     await query.answer(f"Вы выбрали роль: {role}")
-    await LoginState.waiting_password.set()
-
+    await state.finish()
     await process_auth(query.message, state)
 
 async def process_auth(message: types.Message, state: FSMContext):
-
     async with state.proxy() as data:
         password = data['password']
-        user_id = data['user_id']
         login = data['login']
         role = data['role']
+        user_id = data['user_id']
     print(password, user_id, login, role)
     message_id = message.message_id
     chat_id = message.chat.id
@@ -94,6 +92,8 @@ async def process_auth(message: types.Message, state: FSMContext):
                     await bot.edit_message_text(message_id=message_id, chat_id=chat_id, text="✅Данные сохранены в боте")
 
         elif row is not None:
-            await message.answer("❌ Вы уже вводили данные")
+            await bot.edit_message_text(message_id=message_id, chat_id=chat_id, text="❌ Вы уже вводили данные")
     else:
-        await message.answer("❌ Неверный логин или пароль")
+        await bot.edit_message_text(message_id=message_id, chat_id=chat_id, text="❌ Неверный логин или пароль")
+
+
