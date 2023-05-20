@@ -94,6 +94,8 @@ async def parse_schedule(message: types.Message, state: FSMContext):
 
             await bot.edit_message_text(chat_id=wait_message.chat.id, message_id=wait_message.message_id,
                                         text='️⏳Ожидание.')
+        else:
+            await message.answer("Что-то пошло не так...")
 
         select = Select(driver.find_element(By.CSS_SELECTOR, ".fc-view-select"))
         select.select_by_value("agendaDay")
